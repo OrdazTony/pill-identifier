@@ -9,11 +9,36 @@ df = pd.read_csv(Path(__file__).parent / 'Pillbox_-_Archived_Data_20260618.csv')
 
 app = Flask(__name__)
 CORS(app) # Enable CORS for all future routes, particularly expo.
+
+def find_pills_by_imprint(imprint: str):
+    cleaned = " ".join(imprint.split()).upper() #cleans up and converts to uppercase for consistent search
+    matching_rows = df[df["splimprint"] == cleaned] #returns the rows where splimprint matches cleaned(input imprint)
+
+    matches = [] #stores matches
+    seen = [] #stores combinations of name, shape, and color to avoid duplicates
+
+    for _, row in matching_rows.iterrows():
+        current = [row['medicine_name'], row['splshape_text'], row['splcolor_text']]
+        if current not in seen:
+            matches.append({
+                "name": row["medicine_name"],
+                "imprint": cleaned,
+                "shape": row["splshape_text"],
+                "color": row["splcolor_text"]
+            })
+            seen.append(current)
+    return cleaned, matches
+
 @app.route("/search", methods=["GET"])
-def show_search():
+def show_search() -> tuple:
     input_value = request.args.get("query", "")
-    cleaned = " ". join(input_value.split()).upper() #cleans up and converts to uppercase for conistent search
-    if cleaned != "": 
+    cleaned, matches = find_pills_by_imprint(input_value)
+    if not matches:
+        return jsonify ({"error": "No results found."}), 400
+    return jsonify({
+        "query": cleaned,
+        "matches": matches
+    }), 200
         #check if search by imprint or search by name. If the input is purely alphabetic, search by name. 
         # if input_value.isalpha():
         #     if df[df['medicine_name'].str.contains(input_value, case=False, na=False, regex=False)].empty:
@@ -27,28 +52,55 @@ def show_search():
 
 
         #rewritten version of Search by imprint
-        matching_rows = df[df["splimprint"] == cleaned]
-        if not matching_rows.empty: 
-            matches = []
-            seen = []
-            for i in range(len(matching_rows)):
-                current = [matching_rows['medicine_name'].values[i], matching_rows['splshape_text'].values[i], matching_rows['splcolor_text'].values[i]]
-                if current not in seen:
-                    matches.append({
-                    "name": matching_rows['medicine_name'].values[i],
-                    "imprint": cleaned,
-                    "shape": matching_rows['splshape_text'].values[i],
-                    "color": matching_rows['splcolor_text'].values[i]
-                })
-                    seen.append(current)
-            return jsonify({
-                "query": cleaned,
-                "matches": matches
-            }), 200
-        else:
-            return jsonify({"error": "No results found."}), 400
-    # If the input is neither, return an error message.
-    return jsonify({"error": "Invalid query."}), 400
+    #     matching_rows = df[df["splimprint"] == cleaned]
+    #     if not matching_rows.empty:
+    #         matches = []
+    #         seen = []
+    #         for i in range(len(matching_rows)):
+    #             current = [matching_rows['medicine_name'].values[i], matching_rows['splshape_text'].values[i], matching_rows['splcolor_text'].values[i]]
+    #             if current not in seen:
+    #                 matches.append({
+    #                 "name": matching_rows['medicine_name'].values[i],
+    #                 "imprint": cleaned,
+    #                 "shape": matching_rows['splshape_text'].values[i],
+    #                 "color": matching_rows['splcolor_text'].values[i]
+    #             })
+    #                 seen.append(current)
+    #         return jsonify({
+    #             "query": cleaned,
+    #             "matches": matches
+    #         }), 200
+    #     else:
+    #         return jsonify({"error": "No results found."}), 400
+    # # If the input is neither, return an error message.
+    # return jsonify({"error": "Invalid query."}), 400
+
+def ocr_search(imprint_string):
+        cleaned = " ". join(imprint_string.split()).upper() #cleans up and converts to uppercase for conistent search
+        if cleaned != "":
+            matching_rows = df[df["splimprint"] == cleaned]
+            if not matching_rows.empty:
+                matches = []
+                seen = []
+                for i in range(len(matching_rows)):
+                    current = [matching_rows['medicine_name'].values[i], matching_rows['splshape_text'].values[i], matching_rows['splcolor_text'].values[i]]
+                    if current not in seen:
+                        matches.append({
+                        "name": matching_rows['medicine_name'].values[i],
+                        "imprint": cleaned,
+                        "shape": matching_rows['splshape_text'].values[i],
+                        "color": matching_rows['splcolor_text'].values[i]
+                    })
+                        seen.append(current)
+                return jsonify({
+                    "query": cleaned,
+                    "matches": matches
+                }), 200
+            else:
+                return jsonify({"error": "No results found."}), 400
+        # If the input is neither, return an error message.
+        return jsonify({"error": "Invalid query."}), 400
+
 
 @app.route("/ocr", methods=["POST"])
 def check_ocr():
@@ -78,15 +130,24 @@ def check_ocr():
     if not response.text_annotations:
         return jsonify ({"error": "No text detected in the image."}), 400
     detected_text = response.text_annotations[0].description.strip()
-    if detected_text:
-        #now text can be used to search in the database.
-        return jsonify({    #success 
-            "status": "Text detected in the image.",
-            "bytesReceived": bytecount,
-            "extractedText": detected_text
-        }),200
-    else:
-        return jsonify({"error": "No text detected in the image."}), 400
+    cleaned, matches = find_pills_by_imprint(detected_text)
+    if not matches:
+        return jsonify({"error": "No results found."}), 400
+    return jsonify({
+        "extractedText": detected_text,
+        "matches": matches
+    }), 200
+
+    # if detected_text:
+    #     #now text can be used to search in the database.
+    #     search_results = ocr_search(detected_text)
+    #     for match in search_results.get_json().get("matches", []):
+    #         return jsonify({
+    #             "extractedText": search_results.get_json().get("query", ""),
+    #             "matches": search_results.get_json().get("matches", [])
+    #         }), 200
+    #     return jsonify({"error": "No matches found."}), 400
+
     
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)

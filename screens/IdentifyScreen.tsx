@@ -41,12 +41,13 @@ export default function IdentifyScreen() {
   const identifyFromPhoto = async () => { 
     if (!image) {
       setImageError('Please select an image first.');
-      setPhotoStatus('');
+      setPhotoStatus('Please select an image first.');
       return;
     }
 
+
     setImageError('');
-    setPhotoStatus('');
+    setPhotoStatus('Identifying from photo...');
 
     const formData = new FormData();
     formData.append('image', {
@@ -68,9 +69,12 @@ export default function IdentifyScreen() {
         return;
       }
 
+      const matches = JSON.stringify(data.matches);
       const statusText = data?.status || 'Image successfully uploaded.';
       const bytesText = typeof data?.bytesReceived === 'number' ? ` (${data.bytesReceived} bytes)` : '';
-      
+
+      router.push({ pathname: '/results', params: { message: matches, query: data.extractedText, } });
+
       setPhotoStatus(`${statusText}${bytesText}`);
       setImageError('');
 
