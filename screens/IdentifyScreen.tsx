@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Button, StyleSheet, Text, TextInput, View, Alert, Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 export default function IdentifyScreen() {
     const router = useRouter();
@@ -49,15 +50,13 @@ export default function IdentifyScreen() {
     setImageError('');
     setPhotoStatus('Identifying from photo...');
 
-    const formData = new FormData();
-    formData.append('image', {
-      uri: image,
-      name: 'photo.jpg',
-      type: 'image/jpeg',
-    } as any); //this apparently fixes the TypeScript error for FormData.append with a file object
-
     try {
-      const response = await  fetch ('http://localhost:8000/ocr', {
+      const ImageResponse = await fetch(image);
+      const imageBlob = await ImageResponse.blob();
+
+      const formData = new FormData();
+      formData.append('image', imageBlob, 'photo.jpg');
+      const response = await fetch (`${API_URL}/ocr`, {
         method: 'POST',
         body: formData,
       })
@@ -93,7 +92,7 @@ export default function IdentifyScreen() {
     }
     setLoading(true);
     try { 
-        const response = await fetch(`http://localhost:8000/search?query=${encodeURIComponent(query)}`); //this needs to be updated to allow for outside network requests
+        const response = await fetch(`${API_URL}/search?query=${encodeURIComponent(query)}`); //this needs to be updated to allow for outside network requests
         const data = await response.json();
       if (!response.ok) {
             setInlineError(data.error || 'An error occurred while fetching results.');

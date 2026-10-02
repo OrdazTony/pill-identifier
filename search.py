@@ -75,31 +75,31 @@ def show_search() -> tuple:
     # # If the input is neither, return an error message.
     # return jsonify({"error": "Invalid query."}), 400
 
-def ocr_search(imprint_string):
-        cleaned = " ". join(imprint_string.split()).upper() #cleans up and converts to uppercase for conistent search
-        if cleaned != "":
-            matching_rows = df[df["splimprint"] == cleaned]
-            if not matching_rows.empty:
-                matches = []
-                seen = []
-                for i in range(len(matching_rows)):
-                    current = [matching_rows['medicine_name'].values[i], matching_rows['splshape_text'].values[i], matching_rows['splcolor_text'].values[i]]
-                    if current not in seen:
-                        matches.append({
-                        "name": matching_rows['medicine_name'].values[i],
-                        "imprint": cleaned,
-                        "shape": matching_rows['splshape_text'].values[i],
-                        "color": matching_rows['splcolor_text'].values[i]
-                    })
-                        seen.append(current)
-                return jsonify({
-                    "query": cleaned,
-                    "matches": matches
-                }), 200
-            else:
-                return jsonify({"error": "No results found."}), 400
-        # If the input is neither, return an error message.
-        return jsonify({"error": "Invalid query."}), 400
+# def ocr_search(imprint_string):
+#         cleaned = " ".join(imprint_string.split()).upper() #cleans up and converts to uppercase for conistent search
+#         if cleaned != "":
+#             matching_rows = df[df["splimprint"] == cleaned]
+#             if not matching_rows.empty:
+#                 matches = []
+#                 seen = []
+#                 for i in range(len(matching_rows)):
+#                     current = [matching_rows['medicine_name'].values[i], matching_rows['splshape_text'].values[i], matching_rows['splcolor_text'].values[i]]
+#                     if current not in seen:
+#                         matches.append({
+#                         "name": matching_rows['medicine_name'].values[i],
+#                         "imprint": cleaned,
+#                         "shape": matching_rows['splshape_text'].values[i],
+#                         "color": matching_rows['splcolor_text'].values[i]
+#                     })
+#                         seen.append(current)
+#                 return jsonify({
+#                     "query": cleaned,
+#                     "matches": matches
+#                 }), 200
+#             else:
+#                 return jsonify({"error": "No results found."}), 400
+#         # If the input is neither, return an error message.
+#         return jsonify({"error": "Invalid query."}), 400
 
 
 @app.route("/ocr", methods=["POST"])
