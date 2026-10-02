@@ -103,13 +103,14 @@ def show_search() -> tuple:
 #                 return jsonify({"error": "No results found."}), 400
 #         # If the input is neither, return an error message.
 #         return jsonify({"error": "Invalid query."}), 400
-api_key = os.getenv("GOOGLE_CLOUD_VISION_API_KEY")
-
-if not api_key:
-    return jsonify({"error": "Google Vision API key is not configured."}), 500
 
 @app.route("/ocr", methods=["POST"])
 def check_ocr():
+    api_key = os.getenv("GOOGLE_CLOUD_VISION_API_KEY")
+
+    if not api_key:
+        return jsonify({"error": "Google Vision API key is not configured."}), 500
+
     if( 'image' not in request.files):
         return jsonify({"error": "No image uploaded."}), 400
     uploaded = request.files['image']
