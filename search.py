@@ -1,9 +1,12 @@
-from flask import Flask, request, jsonify
 import pandas as pd
+import os
+from google.api_core.client_options import ClientOptions
 from google.cloud import vision
 from google.api_core.exceptions import GoogleAPIError
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pathlib import Path
+
 
 df = pd.read_csv(Path(__file__).parent / 'Pillbox_-_Archived_Data_20260618.csv')
 
@@ -100,7 +103,10 @@ def show_search() -> tuple:
 #                 return jsonify({"error": "No results found."}), 400
 #         # If the input is neither, return an error message.
 #         return jsonify({"error": "Invalid query."}), 400
+api_key = os.getenv("GOOGLE_CLOUD_VISION_API_KEY")
 
+if not api_key:
+    return jsonify({"error": "Google Vision API key is not configured."}), 500
 
 @app.route("/ocr", methods=["POST"])
 def check_ocr():
@@ -118,7 +124,8 @@ def check_ocr():
     # Next step is to send the image to Google Vision API for OCR processing.  
     #   
     try: 
-        client = vision.ImageAnnotatorClient()
+        client_options = ClientOptions(api_key=api_key)
+        client = vision.ImageAnnotatorClient(client_options=client_options)
         vision_image = vision.Image(content=image)
         response = client.text_detection(image=vision_image)
     except GoogleAPIError as e:
