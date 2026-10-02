@@ -2,3 +2,4 @@ flask
 flask-cors
 pandas
 google-cloud-vision
+gunicorn
