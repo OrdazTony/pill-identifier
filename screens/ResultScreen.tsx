@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { StyleSheet, Text, View, Button, ScrollView } from 'react-native';
 
 
 
@@ -7,18 +7,20 @@ export default function ResultScreen() {
   const { message, query } = useLocalSearchParams();
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Result Screen</Text>
       <Text> Possible matches for imprint: {query}</Text>
+      <Text> These are possible matches, not a confirmed identification. Do not take an unknown medication. Confirm it with a pharmacist or healthcare professional.</Text>
       <Button
         title="Back to Search"
         onPress={() => router.back()}
       />
       {(() => {
-
-        const rawMessage = Array.isArray(message) ? message[0] : message;
-        const matches = rawMessage ? JSON.parse(rawMessage) : [];
-        return (
+        try {
+          const rawMessage = Array.isArray(message) ? message[0] : message;
+          const parsed = rawMessage ? JSON.parse(rawMessage) : [];
+          const matches = Array.isArray(parsed) ? parsed : [];
+          return (
           <>
             {matches.map((match: PillMatch) => (
               <View key={`${match.name}-${match.shape}-${match.color}-${match.imprint}`}>
@@ -30,17 +32,20 @@ export default function ResultScreen() {
             ))}
           </>
         );
-    
+        } catch (error) {
+          console.error('Failed to parse message:', error);
+          return null;
+        }
       })()}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    padding: 24,
+    gap: 12,
   },
   title: {
     fontSize: 24,
